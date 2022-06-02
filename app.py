@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+from operator import itemgetter
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -76,7 +77,6 @@ class Show(db.Model):
 
   id = db.Column(db.Integer, primary_key=True)
   start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
   artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id', ondelete="CASCADE"), nullable=False)
   venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id', ondelete="CASCADE"), nullable=False)
 
@@ -136,6 +136,38 @@ def venues():
       "num_upcoming_shows": 0,
     }]
   }]
+
+  city_states_set = set()
+  for venue in venues:
+    city_states_set.add((venue.city, venue.state))
+
+  city_states_set = list(city_states_set)
+  city_states_set.sort(key=itemgetter(1,0))
+
+  current_datetime = datetime.now()
+  for location in city_states_set:
+    venue_list = []
+    for venue in venues:
+      if (venue.city == location[0]) and (venue.state == location[1]):
+        venue_shows = Show.query.filter_by(venue_id=venue.id).all()
+        num_upcoming_shows = 0
+        for show in venue_shows:
+          if show.start_time > current_datetime:
+            num_upcoming_shows += 1
+
+        venue_list.append({
+          "id":venue.id,
+          "name":venue.name,
+          "num_upcoming_shows": num_upcoming_shows
+        })
+
+    data.append({
+      "city": location[0],
+      "state": location[1],
+      "venues": venue_list
+      })
+  print(data)
+
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
