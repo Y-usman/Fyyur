@@ -12,6 +12,7 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from flask_migrate import Migrate
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -22,7 +23,7 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 
 # TODO: connect to a local postgresql database
-
+migrate = Migrate(app, db)
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
@@ -40,6 +41,13 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    website = db.Column(db.String(120))
+    seeking_talent = db.Column(db.Boolean, default=False)
+    seeking_description = db.Column(db.String(120))
+    shows = db.relationship('Show', backref='venue', lazy=True)
+    
+    def __repr__(self):
+        return f'<Venue {self.id} {self.name}>'
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -54,9 +62,26 @@ class Artist(db.Model):
     facebook_link = db.Column(db.String(120))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    website = db.Column(db.String(120))
+    seeking_venue = db.Column(db.Boolean, default=False)
+    seeking_description = db.Column(db.String(120))
+    shows = db.relationship('Show', backref='artist', lazy=True)
+
+    def __repr__(self):
+        return f'<Artist {self.id} {self.name}>'
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+class Show(db.Model):
+  __tablename__ = 'Show'
 
+  id = db.Column(db.Integer, primary_key=True)
+  start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+  artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id', ondelete="CASCADE"), nullable=False)
+  venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id', ondelete="CASCADE"), nullable=False)
+
+  def __repr__(self):
+    return f'<Show {self.id} {self.start_time} artist_id={artist_id} venue_id={venue_id}>'
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
@@ -71,6 +96,8 @@ def format_datetime(value, format='medium'):
 
 app.jinja_env.filters['datetime'] = format_datetime
 
+
+db.create_all()
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
@@ -87,6 +114,7 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
+  venues = Venue.query.all()
   data=[{
     "city": "San Francisco",
     "state": "CA",
@@ -472,6 +500,8 @@ def shows():
 def create_shows():
   # renders form. do not touch.
   form = ShowForm()
+  form.artist_id.choices =[(artist.id, artist.name) for artist in Artist.query.order_by(Artist.id).all()]
+  form.venue_id.choices =[(venue.id, venue.name) for venue in Venue.query.order_by(Venue.id).all()]
   return render_template('forms/new_show.html', form=form)
 
 @app.route('/shows/create', methods=['POST'])
@@ -480,8 +510,11 @@ def create_show_submission():
   # TODO: insert form data as a new Show record in the db, instead
 
   # on successful db insert, flash success
-  flash('Show was successfully listed!')
+  if False:
+    flash('Show was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
+  else:
+    flash('An error occurred. Show could not be listed.')
   # e.g., flash('An error occurred. Show could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   return render_template('pages/home.html')
