@@ -5,15 +5,18 @@ from wtforms.validators import DataRequired, AnyOf, URL, Optional
 
 class ShowForm(Form):
     artist_id = StringField(
-        'artist_id'
+        'artist_id',
+        validators=[DataRequired()]
     )
     venue_id = StringField(
-        'venue_id'
+        'venue_id',
+        validators=[DataRequired()]
     )
     start_time = DateTimeField(
         'start_time',
         validators=[DataRequired()],
-        default= datetime.today()
+        default= datetime.today(),
+        format='%Y-%m-%dT%H:%M'
     )
 
 class VenueForm(Form):
@@ -114,18 +117,14 @@ class VenueForm(Form):
         ]
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[Optional(),URL()]
     )
     website_link = StringField(
         'website_link', validators=[Optional(),URL()]
     )
 
     seeking_talent = BooleanField( 
-        'seeking_talent', validators=[DataRequired()],
-        choices=[
-            ('No','No'),
-            ('Yes','Yes')
-        ] 
+        'seeking_talent'
     )
 
     seeking_description = StringField(
@@ -230,7 +229,7 @@ class ArtistForm(Form):
      )
     facebook_link = StringField(
         # TODO implement enum restriction
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[Optional(),URL()]
      )
 
     website_link = StringField(
@@ -238,13 +237,9 @@ class ArtistForm(Form):
      )
 
     seeking_venue = BooleanField(
-        'seeking_venue', validators=[DataRequired()],
-        choices=[
-            ('No','No'),
-            ('Yes','Yes')
-        ]
+        'seeking_venue'
     )
     seeking_description = StringField(
-            'seeking_description', validators=[Optional()]
+            'seeking_description'
      )
 
